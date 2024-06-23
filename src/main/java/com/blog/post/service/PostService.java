@@ -2,6 +2,8 @@ package com.blog.post.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -15,6 +17,7 @@ import com.blog.post.repositories.LikeRepository;
 import com.blog.post.repositories.PostRepository;
 import com.blog.post.repositories.UserRepository;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,9 +31,19 @@ public class PostService {
     private static final String UPLOAD_DIR;
 
     static {
+        UPLOAD_DIR = createUploadDir();
+    }
+
+    private static String createUploadDir() {
         try {
-            // Assuming the upload directory is inside the static folder of the project
-            UPLOAD_DIR = new ClassPathResource("static/images").getFile().getAbsolutePath();
+            Resource resource = new ClassPathResource("static/images");
+            File file = resource.getFile();
+            String absolutePath = file.getAbsolutePath();
+            File uploadDir = new File(absolutePath);
+            if (!uploadDir.exists()) {
+                uploadDir.mkdirs();
+            }
+            return absolutePath;
         } catch (IOException e) {
             throw new RuntimeException("Failed to determine upload directory", e);
         }
