@@ -1,6 +1,7 @@
 package com.blog.post.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -23,8 +24,17 @@ import java.util.Optional;
 
 @Service
 public class PostService {
-	private static final String UPLOAD_DIR = "/uploads"; // Directory inside static folder
 
+    private static final String UPLOAD_DIR;
+
+    static {
+        try {
+            // Assuming the upload directory is inside the static folder of the project
+            UPLOAD_DIR = new ClassPathResource("static/images").getFile().getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to determine upload directory", e);
+        }
+    }
 
     @Autowired
     private PostRepository postRepository;
@@ -38,31 +48,30 @@ public class PostService {
     @Autowired
     private CommentRepository commentRepository;
 
-
-public List<Post> getAllPosts() {
-    List<Post> posts = postRepository.findAll();
-    posts.forEach(this::setPhotoURL);
-    return posts;
-}
-
-public Optional<Post> getPostById(Long id) {
-    Optional<Post> post = postRepository.findById(id);
-    post.ifPresent(this::setPhotoURL);
-    return post;
-}
-
-private void setPhotoURL(Post post) {
-    if (post.getPhotoPath() != null) {
-        String photoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                          .path("/uploads/")
-                          .path(post.getPhotoPath())
-                          .toUriString();
-        post.setPhotoPath(photoUrl);
+    public List<Post> getAllPosts() {
+        List<Post> posts = postRepository.findAll();
+        posts.forEach(this::setPhotoURL);
+        return posts;
     }
-}
+
+    public Optional<Post> getPostById(Long id) {
+        Optional<Post> post = postRepository.findById(id);
+        post.ifPresent(this::setPhotoURL);
+        return post;
+    }
+
+    private void setPhotoURL(Post post) {
+        if (post.getPhotoPath() != null) {
+            String photoUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/uploads/")
+                    .path(post.getPhotoPath())
+                    .toUriString();
+            post.setPhotoPath(photoUrl);
+        }
+    }
 
     public Post savePost(Post post, MultipartFile photoFile, Long userId) throws IOException {
-        User user = userRepository.findById(userId).orElseThrow();
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         String fileName = saveFile(photoFile);
         post.setPhotoPath(fileName);
@@ -89,8 +98,8 @@ private void setPhotoURL(Post post) {
     }
 
     public Post likePost(Long postId, Long userId) {
-        Post post = postRepository.findById(postId).orElseThrow();
-        User user = userRepository.findById(userId).orElseThrow();
+        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         Like like = new Like();
         like.setPost(post);
@@ -103,8 +112,8 @@ private void setPhotoURL(Post post) {
     }
 
     public boolean commentOnPost(Long postId, Long userId, String text) {
-        Post post = postRepository.findById(postId).orElseThrow();
-        User user = userRepository.findById(userId).orElseThrow();
+        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
         Comment comment = new Comment();
         comment.setPost(post);
@@ -117,15 +126,14 @@ private void setPhotoURL(Post post) {
         postRepository.save(post);
         return true;
     }
-    
 
     public List<Comment> getCommentsByPostId(Long postId) {
-        Post post = postRepository.findById(postId).orElseThrow();
+        Post post = postRepository.findById(postId).orElseThrow(() -> new RuntimeException("Post not found"));
         return commentRepository.findByPost(post);
     }
+
     public boolean deletePostById(Long postId) {
-        Optional<Post> post = postRepository.findById(postId);
-        if (post.isPresent()) {
+        if (postRepository.existsById(postId)) {
             postRepository.deleteById(postId);
             return true;
         }

@@ -20,7 +20,7 @@ public class PostApplication {
 	            public void addCorsMappings(CorsRegistry registry) {
 	                registry.addMapping("/**")
 	                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH")
-	                        .allowedOrigins("http://localhost:5173","https://ntc-website-frontend.onrender.com")
+	                        .allowedOrigins("http://localhost:5173","https://ntc-website-frontend.vercel.app")
 	                        .allowedHeaders("*");
 	            }
 	        };
